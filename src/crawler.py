@@ -8,7 +8,14 @@ GRAPHQL_URL = "https://api.github.com/graphql"
 
 def _get_headers() -> dict:
     """Read token only when actually making a request."""
-    token = os.environ["GITHUB_TOKEN"]
+    token = os.environ.get("GITHUB_TOKEN")
+    
+    if not token:
+        raise ValueError(
+            "GITHUB_TOKEN is missing! Check your GitHub Actions 'env' section "
+            "and ensure it maps to secrets.tokenn."
+        )
+
     return {
         "Authorization": f"bearer {token}",
         "Content-Type":  "application/json",
