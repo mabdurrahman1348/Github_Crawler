@@ -53,7 +53,7 @@ jobs:
       # Step 5 - Crawl 100k repos
       - name: crawl-stars
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.tokenn }}
         run: |
           cd src && python - <<'EOF'
           from crawler import crawl
