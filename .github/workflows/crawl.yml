@@ -1,0 +1,86 @@
+name: GitHub Crawler
+
+on:
+  workflow_dispatch:        # manual trigger (run by clicking a button)
+  schedule:
+    - cron: "0 2 * * *"    # runs automatically every day at 02:00 UTC
+
+jobs:
+  crawl:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER:     postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB:       github
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      PGHOST:     localhost
+      PGPORT:     5432
+      PGDATABASE: github
+      PGUSER:     postgres
+      PGPASSWORD: postgres
+
+    steps:
+      # Step 1 - Get our code
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Step 2 - Install Python
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # Step 3 - Install our libraries
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      # Step 4 - Create DB tables
+      - name: setup-postgres
+        run: psql -h localhost -U postgres -d github -f db/schema.sql
+
+      # Step 5 - Crawl 100k repos
+      - name: crawl-stars
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd src && python - <<'EOF'
+          from crawler import crawl
+          from db import upsert_repositories
+
+          BATCH_SIZE = 500
+          batch = []
+
+          for repo in crawl(target=100_000):
+              batch.append(repo)
+              if len(batch) >= BATCH_SIZE:
+                  upsert_repositories(batch)
+                  batch.clear()
+
+          if batch:
+              upsert_repositories(batch)
+
+          print("🎉 Crawl complete!")
+          EOF
+
+      # Step 6 - Export to CSV
+      - name: Export CSV
+        run: cd src && python export.py
+
+      # Step 7 - Upload CSV as downloadable artifact
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: github-repos-${{ github.run_id }}
+          path: output/repos.csv
