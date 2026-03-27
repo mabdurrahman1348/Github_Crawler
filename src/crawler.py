@@ -4,13 +4,15 @@ import requests
 from dataclasses import dataclass
 from typing import Iterator
 
-GITHUB_TOKEN = os.environ["GITHUB_TOKEN"]
-GRAPHQL_URL  = "https://api.github.com/graphql"
+GRAPHQL_URL = "https://api.github.com/graphql"
 
-HEADERS = {
-    "Authorization": f"bearer {GITHUB_TOKEN}",
-    "Content-Type":  "application/json",
-}
+def _get_headers() -> dict:
+    """Read token only when actually making a request."""
+    token = os.environ["GITHUB_TOKEN"]
+    return {
+        "Authorization": f"bearer {token}",
+        "Content-Type":  "application/json",
+    }
 
 # --- Immutable domain model ---
 @dataclass(frozen=True)
@@ -41,15 +43,12 @@ query($cursor: String) {
 
 
 def _post(cursor: str | None) -> dict:
-    """Send one GraphQL request to GitHub."""
     resp = requests.post(
         GRAPHQL_URL,
         json={"query": QUERY, "variables": {"cursor": cursor}},
-        headers=HEADERS,
+        headers=_get_headers(),
         timeout=30,
     )
-    resp.raise_for_status()
-    return resp.json()
 
 
 def _wait_for_rate_limit(rate: dict) -> None:
