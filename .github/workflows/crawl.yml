@@ -74,13 +74,13 @@ jobs:
           print("🎉 Crawl complete!")
           EOF
 
-      # Step 6 - Export to CSV
+# Step 6 - Run from root using the module path
       - name: Export CSV
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: cd src && python export.py
+          GITHUB_TOKEN: ${{ secrets.tokenn }} # Fixed to match your secret name
+        run: python src/export.py
 
-      # Step 7 - Upload CSV as downloadable artifact
+      # Step 7 - Now the path matches perfectly
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
