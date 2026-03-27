@@ -76,6 +76,8 @@ jobs:
 
       # Step 6 - Export to CSV
       - name: Export CSV
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: cd src && python export.py
 
       # Step 7 - Upload CSV as downloadable artifact
